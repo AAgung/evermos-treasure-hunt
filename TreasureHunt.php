@@ -3,6 +3,7 @@
         private $gridColumn = 8; 
         private $gridRow = 6; 
         private $coord = [];
+        private $clearPathCoord = [];
         private $currUserPosition = null;
         
         function __construct()
@@ -42,15 +43,13 @@
              * END navigate by user from starting position by order
              */ 
 
-            // generate probable coord points where the treasure might be localted
-            $this->_setProbableTreasureCoord($up, $right, $down);
+            // // generate probable coord points where the treasure might be localted
+            echo PHP_EOL."===============".PHP_EOL;
+            echo "Probable Treasure Locations: ".$this->_setProbableTreasureCoord($up, $right, $down);
             
             // generate grid after navigate position by user
             echo PHP_EOL."===============".PHP_EOL;
             $this->_generateGrid();
-
-            // $this->_setProbableTreasureCoord(10,5,2);
-            // $this->_generateGrid();
         }
 
 
@@ -91,7 +90,15 @@
                         $this->currUserPosition = $userPosition;
                     }
                     // END set starting position
-                    else $this->coord[$i][$j] = ".";
+                    else {
+                        $this->coord[$i][$j] = ".";
+                        
+                        // add coord to clearPathCoord
+                        $clearPath = new stdClass();
+                        $clearPath->row = $i;
+                        $clearPath->column = $j;
+                        $this->clearPathCoord["{$clearPath->row}::{$clearPath->column}"] = $clearPath;
+                    }
                 }
             }
         }
@@ -110,9 +117,13 @@
                             if($this->coord[$this->currUserPosition->row][$currColumn] == ".") {
                                 $this->coord[$this->currUserPosition->row][$currColumn] = 'X';
                                 $this->currUserPosition->column = $currColumn;
+
+                                // delete coord from clearPathCoord
+                                if(array_key_exists($this->currUserPosition->row."::".$currColumn, $this->clearPathCoord)) {
+                                    unset($this->clearPathCoord[$this->currUserPosition->row."::".$currColumn]);
+                                }
                             }
                         }
-                        var_dump($this->coord[$this->currUserPosition->row][$currColumn]);
                         break;
                     case "up":
                     case "down":
@@ -123,6 +134,11 @@
                             if($this->coord[$currRow][$this->currUserPosition->column] == ".") {
                                 $this->coord[$currRow][$this->currUserPosition->column] = 'X';
                                 $this->currUserPosition->row = $currRow;
+
+                                // delete coord from clearPathCoord
+                                if(array_key_exists($currRow."::".$this->currUserPosition->column, $this->clearPathCoord)) {
+                                    unset($this->clearPathCoord[$currRow."::".$this->currUserPosition->column]);
+                                }
                             }
                         }
                         break;
@@ -141,6 +157,15 @@
             if($up) $this->_setCoordValuesByUserNavigate($up, "up");
             if($right) $this->_setCoordValuesByUserNavigate($right, "right");
             if($down) $this->_setCoordValuesByUserNavigate($down, "down");
+
+            
+            // get list of probable treasure coord from clearPathCoord after user navigate process 
+            $listTreasureCoord = [];
+            foreach($this->clearPathCoord as $key => $coord) {
+                $listTreasureCoord[] = "({$coord->row}, {$coord->column})";
+                $this->coord[$coord->row][$coord->column] = "$"; // set symbol "$" for treasure coord from clearPathCoord
+            }                       
+            return implode(', ', $listTreasureCoord);
         }
 
         /**
